@@ -1,4 +1,4 @@
-name: Generate Database for MyReaderApp
+name: Sync Database for MyReaderApp
 
 on:
   push:
@@ -13,23 +13,25 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create database.json
+      - name: Generate Database
         run: |
-          # สร้างไฟล์ชื่อ database.json ตามที่แอปต้องการ
+          # สร้างไฟล์ database.json (ชื่อต้องเป๊ะตามโค้ดแอป)
           echo "[" > database.json
           find . -maxdepth 3 -not -path '*/.*' \( -name "*.pdf" -o -name "*.epub" \) | sed 's|^\./||' | while read line; do
-            # สร้าง URL ตรง (Raw Link) เพื่อให้แอปเปิดอ่านได้ทันที
+            # สร้าง URL แบบ Raw เพื่อให้แอปดึงเนื้อหาไปโชว์ได้
             RAW_URL="https://raw.githubusercontent.com/${{ github.repository }}/main/${line}"
-            # ปรับแต่ง JSON ให้ตรงกับที่แอปคุณเขียนไว้ (ใช้คำว่า title และ url)
+            # ใช้โครงสร้าง {"title": "...", "url": "..."} ตามที่แอปคุณเขียนไว้
             echo "  {\"title\": \"$(basename "$line")\", \"url\": \"$RAW_URL\"}," >> database.json
           done
           sed -i '$ s/,$//' database.json
           echo "]" >> database.json
 
-      - name: Push to GitHub
+      - name: Clean and Update
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
+          # ลบไฟล์ books.json ทิ้งไปเลยเพื่อไม่ให้สับสน
+          rm -f books.json
           git add database.json
-          git commit -m "Update database.json for MyReaderApp" || exit 0
+          git commit -m "Update database.json and remove books.json" || exit 0
           git push
