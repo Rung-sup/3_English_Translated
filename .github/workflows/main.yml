@@ -1,4 +1,4 @@
-name: Update Book Database
+name: Generate Database for MyReaderApp
 
 on:
   push:
@@ -13,19 +13,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Generate Book List
+      - name: Create database.json
         run: |
-          echo "[" > books.json
-          find . -maxdepth 2 -not -path '*/.*' \( -name "*.pdf" -o -name "*.epub" \) | sed 's|^\./||' | while read line; do
-            echo "  {\"title\": \"$(basename "$line")\", \"path\": \"$line\"}," >> books.json
+          # สร้างไฟล์ชื่อ database.json ตามที่แอปต้องการ
+          echo "[" > database.json
+          find . -maxdepth 3 -not -path '*/.*' \( -name "*.pdf" -o -name "*.epub" \) | sed 's|^\./||' | while read line; do
+            # สร้าง URL ตรง (Raw Link) เพื่อให้แอปเปิดอ่านได้ทันที
+            RAW_URL="https://raw.githubusercontent.com/${{ github.repository }}/main/${line}"
+            # ปรับแต่ง JSON ให้ตรงกับที่แอปคุณเขียนไว้ (ใช้คำว่า title และ url)
+            echo "  {\"title\": \"$(basename "$line")\", \"url\": \"$RAW_URL\"}," >> database.json
           done
-          sed -i '$ s/,$//' books.json
-          echo "]" >> books.json
+          sed -i '$ s/,$//' database.json
+          echo "]" >> database.json
 
-      - name: Commit and Push
+      - name: Push to GitHub
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add books.json
-          git commit -m "Update books.json" || exit 0
+          git add database.json
+          git commit -m "Update database.json for MyReaderApp" || exit 0
           git push
